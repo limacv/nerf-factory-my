@@ -59,7 +59,7 @@ class LitModel(pl.LightningModule):
 
     @torch.no_grad()
     def lpips_each(self, preds, gts):
-        lpips_model = LPIPS(network="vgg").to(device=self.device)
+        lpips_model = LPIPS().to(device=self.device)
         lpips_list = []
         for (pred, gt) in zip(preds, gts):
             pred = torch.clip(pred.permute((2, 0, 1)).unsqueeze(0).float(), 0, 1)

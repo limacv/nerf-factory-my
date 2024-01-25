@@ -20,8 +20,7 @@ from pytorch_lightning.callbacks import (
     ModelCheckpoint,
     TQDMProgressBar,
 )
-from pytorch_lightning.plugins import DDPPlugin
-
+torch.hub.set_dir("/cpfs01/shared/pjlab-lingjun-landmarks/mali1/.cache")
 from utils.select_option import select_callback, select_dataset, select_model
 
 
@@ -133,23 +132,21 @@ def run(
     callbacks += [model_checkpoint, tqdm_progrss]
     callbacks += select_callback(model_name)
 
-    ddp_plugin = DDPPlugin(find_unused_parameters=False) if num_devices > 1 else None
+    ddp_plugin = None  # DDPPlugin(find_unused_parameters=False) if num_devices > 1 else None
 
     trainer = Trainer(
         logger=logger if run_train else None,
         log_every_n_steps=log_every_n_steps,
-        devices=num_devices,
         max_epochs=max_epochs,
         max_steps=max_steps,
-        accelerator="gpu",
-        replace_sampler_ddp=False,
-        strategy=ddp_plugin,
+        accelerator='gpu', 
+        devices=1,
         check_val_every_n_epoch=1,
-        precision=precision,
         num_sanity_val_steps=num_sanity_val_steps,
         callbacks=callbacks,
         gradient_clip_algorithm=grad_clip_algorithm,
         gradient_clip_val=grad_max_norm,
+        precision="bf16",
     )
 
     if resume_training:

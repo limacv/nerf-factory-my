@@ -16,12 +16,10 @@ from src.data.litdata import (
     LitDataShinyBlender,
     LitDataTnT,
 )
-from src.model.dvgo.model import LitDVGO
 from src.model.mipnerf360.model import LitMipNeRF360
 from src.model.mipnerf.model import LitMipNeRF
 from src.model.nerf.model import LitNeRF
 from src.model.nerfpp.model import LitNeRFPP
-from src.model.plenoxel.model import LitPlenoxel
 from src.model.refnerf.model import LitRefNeRF
 
 

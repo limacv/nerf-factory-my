@@ -393,7 +393,6 @@ class LitRefNeRF(LitModel):
         optimizer_idx,
         optimizer_closure,
         on_tpu,
-        using_native_amp,
         using_lbfgs,
     ):
         step = self.trainer.global_step
@@ -428,6 +427,11 @@ class LitRefNeRF(LitModel):
         self.log("val/psnr", psnr_mean.item(), on_epoch=True, sync_dist=True)
         self.log("val/ssim", ssim_mean.item(), on_epoch=True, sync_dist=True)
         self.log("val/lpips", lpips_mean.item(), on_epoch=True, sync_dist=True)
+
+        if self.trainer.is_global_zero:
+            image_dir = os.path.join(self.logdir, f"val_epoch_{self.current_epoch:06d}")
+            os.makedirs(image_dir, exist_ok=True)
+            store_image.store_image(image_dir, rgbs)
 
     def test_epoch_end(self, outputs):
         dmodule = self.trainer.datamodule

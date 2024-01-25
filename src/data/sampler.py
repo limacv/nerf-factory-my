@@ -125,15 +125,13 @@ class MultipleImageDDPSampler(DDPSampler):
         )
         self.total_len = total_len
         self.epoch_size = epoch_size
+        if self.epoch_size < 0:
+            self.epoch_size = self.total_len // self.batch_size
+            print(f"Setting epoch size to {self.epoch_size}")
 
     def __iter__(self):
-        full_index = np.arange(self.total_len)
-        indices = np.stack(
-            [
-                np.random.choice(full_index, self.batch_size)
-                for _ in range(self.epoch_size)
-            ]
-        )
+        indices = np.random.permutation(self.total_len)[:self.batch_size * self.epoch_size]
+        indices = indices.reshape(self.epoch_size, self.batch_size)
         for batch in indices:
             yield batch[self.rank :: self.num_replicas]
 

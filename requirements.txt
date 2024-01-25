@@ -4,7 +4,7 @@ requests
 configargparse
 scikit-image
 imageio-ffmpeg
-piqa
+piqa==1.0.0
 wandb
 torch-scatter
 pytorch_lightning
@@ -13,5 +13,4 @@ gin-config
 gdown
 ninja
 functorch
-torch==1.11.0
 torch_efficient_distloss
