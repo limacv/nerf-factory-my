@@ -21,6 +21,7 @@ from src.model.mipnerf.model import LitMipNeRF
 from src.model.nerf.model import LitNeRF
 from src.model.nerfpp.model import LitNeRFPP
 from src.model.refnerf.model import LitRefNeRF
+from src.model.specnerf.model import LitSpecNeRF
 
 
 def select_model(
@@ -41,6 +42,8 @@ def select_model(
         return LitRefNeRF()
     elif model_name == "mipnerf360":
         return LitMipNeRF360()
+    elif model_name == "specnerf":
+        return LitSpecNeRF()
 
     else:
         raise f"Unknown model named {model_name}"
