@@ -38,7 +38,7 @@ class SpecNeRFMLP(nn.Module):
         netwidth_viewdirs: int = 256,
         # net_activation: Callable[..., Any] = nn.ReLU(),
         skip_layer: int = 4,
-        skip_layer_dir: int = 4,
+        skip_layer_dir: int = 3,
         perturb: float = 1.0,
         input_ch: int = 3,
         input_ch_view: int = 3,
@@ -175,35 +175,28 @@ class SpecNeRFMLP(nn.Module):
             -1, num_samples, self.num_normal_channels
         )
         normals_pred = -spec_utils.l2_normalize(grad_pred)
+        normals_to_use = normals_pred
 
         raw_rgb_diffuse = self.rgb_diffuse_layer(x)
 
-        # only shade topk
-        topk = 64
-        _, shade_id = torch.topk(density, k=topk, dim=-2, largest=True, sorted=False)
-        x_reshape = x.reshape((*density.shape[:-1], -1))
-        x_shaded = torch.gather(x_reshape, dim=-2, index=shade_id.expand((*shade_id.shape[:-1], x_reshape.shape[-1])))
-        x_shaded = x_shaded.reshape(-1, x_shaded.shape[-1])
-        raw_roughness = self.roughness_layer(x_shaded)
+        tint = self.tint_layer(x)
+        tint = self.tint_activation(tint)
+
+        raw_roughness = self.roughness_layer(x)
         roughness = self.roughness_activation(raw_roughness + self.roughness_bias)
-        roughness = roughness.reshape(-1, topk, self.num_roughness_channels)
+        roughness = roughness.reshape(-1, num_samples, self.num_roughness_channels)
 
-        bottleneck = self.bottleneck_layer(x_shaded)
+        bottleneck = self.bottleneck_layer(x)
         bottleneck += self.bottleneck_noise * torch.randn_like(bottleneck)
-        bottleneck = bottleneck.reshape(-1, topk, self.bottleneck_width)
+        bottleneck = bottleneck.reshape(-1, num_samples, self.bottleneck_width)
 
-        normals_to_use = torch.gather(normals_pred, dim=-2, index=shade_id.expand((*shade_id.shape[:-1], 3)))
         refdirs = spec_utils.reflect(-viewdirs[..., None, :], normals_to_use)
-        # means_to_use = torch.gather(means, dim=-2, index=shade_id.expand((*shade_id.shape[:-1], 3)))
-        means_to_use = torch.zeros_like(refdirs)
+        means_to_use = torch.zeros_like(means)
         dir_enc = self.dir_enc_fn(refdirs, means_to_use, roughness * 5)
 
         dotprod = torch.sum(
             normals_to_use * viewdirs[..., None, :], dim=-1, keepdims=True
         )
-
-        tint = self.tint_layer(x_shaded)
-        tint = self.tint_activation(tint)
 
         x = torch.cat([bottleneck, dir_enc, dotprod], dim=-1)
         x = x.reshape(-1, x.shape[-1])
@@ -216,15 +209,9 @@ class SpecNeRFMLP(nn.Module):
 
         raw_rgb = self.rgb_layer(x)
         rgb = self.rgb_activation(self.rgb_premultiplier * raw_rgb + self.rgb_bias)
-        specular_shaded = tint * rgb
-        specular_shaded = specular_shaded.reshape((*density.shape[:-2], topk, 3))
-        specular_linear = torch.zeros_like(raw_rgb_diffuse.reshape((*density.shape[:-1], 3)))
-        specular_linear = torch.scatter(specular_linear, -2, 
-                                        shade_id.expand_as(specular_shaded), 
-                                        specular_shaded)
 
-        specular_linear = specular_linear.reshape(-1, 3)
         diffuse_linear = self.rgb_activation(raw_rgb_diffuse - np.log(3.0))
+        specular_linear = tint * rgb
         rgb = torch.clamp(
             helper.linear_to_srgb(specular_linear + diffuse_linear), 0.0, 1.0
         )
