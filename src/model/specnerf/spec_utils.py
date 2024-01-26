@@ -162,13 +162,13 @@ class LearnableSphericalGaussianEncoding(torch.nn.Module):
         
         if "init_translation" in kwargs:
             init_trans = kwargs["init_translation"]
-            assert init_trans.shape == [self.num_g, 3]
+            assert init_trans.shape == (self.num_g, 3)
         else:
             init_trans = torch.rand(self.num_g, 3) * 10 - 5
         
         if "init_scale" in kwargs:
             init_scale = kwargs["init_scale"]
-            assert init_scale.shape == [self.num_g, 1] or init_scale.shape == [self.num_g, 3]
+            assert init_scale.shape == (self.num_g, 1) or init_scale.shape == (self.num_g, 3)
             init_scale = init_scale.expand_as(init_trans)
         else:
             init_scale = torch.ones_like(init_trans) * 5
@@ -217,11 +217,8 @@ class LearnableSphericalGaussianEncoding(torch.nn.Module):
         ray_d_g = self.qrot(ray_d[:, None], self.rotate[None], dim=-1)
 
         t = - (ray_o_g * ray_d_g).sum(dim=-1, keepdim=True)  # N, Deg, 1, -t is the actual dot product
-        if self.cone_trace:
-            scale_offset = roughness_offset[:, None] * t.detach().clamp_min(1e-5)
-        else:
-            scale_offset = roughness_offset[:, None]
-        invscale = self.invscale / (1 + self.invscale * scale_offset)
+        scale_offset = roughness_offset[:, None]
+        invscale = self.invscale * scale_offset
 
         ray_o_g = ray_o_g * invscale
         ray_d_g = ray_d_g * invscale
