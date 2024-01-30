@@ -19,5 +19,5 @@ LitData.use_pixel_centers = True
 LitData.epoch_size = 5000
 LitDataShinyBlender.val_skip = 20
 
-SpecNeRF.deg_view = 128
+SpecNeRF.deg_view = 192
 LitSpecNeRF.compute_normal_metrics = True
